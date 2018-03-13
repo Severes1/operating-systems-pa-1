@@ -198,8 +198,6 @@ void timer_interrupt(int sig)
         TCB* next = scheduler();
         
         printf("*** SWAPCONTEXT FROM %d to %d\n", running->tid, next->tid);
-        running = next; 
-        current = next->tid;
         activator(next);
     }
     // Else do nothing
@@ -208,6 +206,9 @@ void timer_interrupt(int sig)
 
 /* Activator */
 void activator(TCB* next){
+  running = next; 
+  current = next->tid;
+        
   setcontext (&(next->run_env));
   printf("mythread_free: After setcontext, should never get here!!...\n");	
 }
