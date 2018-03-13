@@ -136,7 +136,7 @@ void mythread_exit() {
   /* Do not add the thread back into the queue */    
 
   TCB* next = scheduler();
-  printf("*** THREAD %d FINISHED AFTER %d TICKS: SET CONTEXT OF %d\n", tid, running->ticks, next->tid);
+  printf("*** THREAD %d FINISHED: SET CONTEXT OF %d\n", tid, next->tid);
 
   t_state[tid].state = FREE;
   free(t_state[tid].run_env.uc_stack.ss_sp); 
