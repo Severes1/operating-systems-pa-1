@@ -14,6 +14,7 @@ TCB* scheduler();
 void activator();
 void timer_interrupt(int sig);
 void network_interrupt(int sig);
+void trigger_switch(void);
 
 /* Array of state thread control blocks: the process allows a maximum of N threads */
 static TCB t_state[N]; 
@@ -31,9 +32,10 @@ static void idle_function(){
   while(1);
 }
 
-/* Queue for Round robin */
+/* Queue for Round robin and FIFO */
 typedef struct queue *queue_ptr;
 queue_ptr ready_queue;
+queue_ptr high_priority_queue;
 
 /* Initialize the thread library */
 void init_mythreadlib() {
@@ -78,6 +80,7 @@ void init_mythreadlib() {
   * Ready queue: list of TCB *  in order that they will execute
   */
   ready_queue = queue_new();
+  high_priority_queue = queue_new();
 
   /* Initialize network and clock interrupts */
   init_network_interrupt();
@@ -111,9 +114,15 @@ int mythread_create (void (*fun_addr)(),int priority)
   t_state[i].run_env.uc_stack.ss_flags = 0;
   makecontext(&t_state[i].run_env, fun_addr, 1); 
 
-  /* Add process to the ready_queue */
-  enqueue(ready_queue, &t_state[i]);
-
+  /* Add process to the correct queue */
+  if (priority == LOW_PRIORITY) {
+    enqueue(ready_queue, &t_state[i]);
+  } else {
+    enqueue(high_priority_queue, &t_state[i]);
+    if (running->priority == LOW_PRIORITY) {
+      trigger_switch(); 
+    }
+  }
   return i;
 } /****** End my_thread_create() ******/
 
@@ -167,42 +176,49 @@ int mythread_gettid(){
 /* Round robin policy */
 TCB* scheduler(){
 
-  if (queue_empty(ready_queue)) {
+  if (queue_empty(high_priority_queue) && queue_empty(ready_queue)) {
     printf("mythread_free: No thread in the system\nExiting...\n");	
     exit(1); 
   }
-
-  TCB* next = dequeue(ready_queue);
-  /* TODO state */
-  current = next->tid;
+  TCB * next;
+  if (queue_empty(high_priority_queue)) {
+    next = dequeue(ready_queue);
+  } else {
+    next = dequeue(high_priority_queue);
+  }
+  
   return next;
 
  }
+
+void trigger_switch() {
+   //   Enqueue this process in the correct queue 
+        
+  if (running->priority == LOW_PRIORITY) {
+    enqueue(ready_queue, running);
+  } else {
+    enqueue(high_priority_queue, running);
+  }
+  running->state = IDLE;
+  running->ticks = 0;
+
+  //   Call Scheduler
+  TCB* next = scheduler();
+  printf("*** SWAPCONTEXT FROM %d to %d\n", running->tid, next->tid);
+  activator(next);
+}
 
 
 /* Timer interrupt  */
 void timer_interrupt(int sig)
 {
     running->ticks++;
-
     getcontext(&running->run_env);
     // If it's time
-    if (running->ticks >= QUANTUM_TICKS) {
-    // Switch
-    //   Enqueue this process in the ready_queue
-        enqueue(ready_queue, running); 
-        running->state = IDLE;
-        running->ticks = 0;
-
-    //   Call Scheduler
-        TCB* next = scheduler();
-        
-        printf("*** SWAPCONTEXT FROM %d to %d\n", running->tid, next->tid);
-        activator(next);
-    }
-    // Else do nothing
-
-} 
+    if (running->priority == LOW_PRIORITY && running->ticks >= QUANTUM_TICKS) {
+      trigger_switch();
+    } 
+}
 
 /* Activator */
 void activator(TCB* next){
