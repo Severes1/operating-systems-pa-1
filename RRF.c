@@ -189,35 +189,37 @@ TCB* scheduler(){
   
   return next;
 
- }
+}
 
 void trigger_switch() {
    //   Enqueue this process in the correct queue 
-        
-  if (running->priority == LOW_PRIORITY) {
-    enqueue(ready_queue, running);
-  } else {
-    enqueue(high_priority_queue, running);
-  }
-  running->state = IDLE;
-  running->ticks = 0;
+    getcontext(&running->run_env);
+    // If it's time
+    if (running->priority == LOW_PRIORITY && (running->ticks >= QUANTUM_TICKS || !queue_empty(high_priority_queue))) {
+            
+      if (running->priority == LOW_PRIORITY) {
+        enqueue(ready_queue, running);
+      } else {
+        enqueue(high_priority_queue, running);
+      }
+      running->state = IDLE;
+      running->ticks = 0;
 
-  //   Call Scheduler
-  TCB* next = scheduler();
-  printf("*** SWAPCONTEXT FROM %d to %d\n", running->tid, next->tid);
-  activator(next);
+      //   Call Scheduler
+      TCB* next = scheduler();
+      printf("*** SWAPCONTEXT FROM %d to %d\n", running->tid, next->tid);
+      activator(next);
+    }
 }
 
 
 /* Timer interrupt  */
 void timer_interrupt(int sig)
 {
-    running->ticks++;
-    getcontext(&running->run_env);
-    // If it's time
-    if (running->priority == LOW_PRIORITY && running->ticks >= QUANTUM_TICKS) {
-      trigger_switch();
-    } 
+  running->ticks++;
+  if (running->ticks >= QUANTUM_TICKS) {
+    trigger_switch();
+  }
 }
 
 /* Activator */
