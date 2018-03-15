@@ -177,6 +177,7 @@ int mythread_gettid(){
 TCB* scheduler(){
 
   if (queue_empty(high_priority_queue) && queue_empty(ready_queue)) {
+    printf("*** THREAD %d FINISHED\n", current);
     printf("mythread_free: No thread in the system\nExiting...\n");	
     exit(1); 
   }
@@ -207,8 +208,10 @@ void trigger_switch() {
 
       //   Call Scheduler
       TCB* next = scheduler();
-      printf("*** SWAPCONTEXT FROM %d to %d\n", running->tid, next->tid);
-      activator(next);
+      if (next->tid != running->tid) {
+        printf("*** SWAPCONTEXT FROM %d to %d\n", running->tid, next->tid);
+        activator(next);
+      }
     }
 }
 
