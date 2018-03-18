@@ -29,6 +29,7 @@ static int init=0;
 /* Thread control block for the idle thread */
 static TCB idle;
 static void idle_function(){
+	printf("Hello I'm IDLE\n");
   while(1);
 }
 
@@ -36,6 +37,8 @@ static void idle_function(){
 typedef struct queue *queue_ptr;
 queue_ptr ready_queue;
 queue_ptr high_priority_queue;
+/* Waiting queue for the process that calls read_network */
+queue_ptr waiting_queue;
 
 /* Initialize the thread library */
 void init_mythreadlib() {
@@ -81,6 +84,7 @@ void init_mythreadlib() {
   */
   ready_queue = queue_new();
   high_priority_queue = queue_new();
+  waiting_queue = queue_new();
 
   /* Initialize network and clock interrupts */
   init_network_interrupt();
@@ -101,6 +105,7 @@ int mythread_create (void (*fun_addr)(),int priority)
     perror("*** ERROR: getcontext in my_thread_create");
     exit(-1);
   }
+  
   t_state[i].state = INIT;
   t_state[i].priority = priority;
   t_state[i].function = fun_addr;
@@ -126,15 +131,42 @@ int mythread_create (void (*fun_addr)(),int priority)
   return i;
 } /****** End my_thread_create() ******/
 
+
 /* Read network syscall */
 int read_network()
 {
-   return 1;
+	TCB * next;
+	
+	printf("*** THREAD %i READ FROM NETWORK\n", current);
+	
+	enqueue(waiting_queue,running);
+	next = scheduler();
+	
+	running->state = WAITING;
+	getcontext(&(running->run_env));
+	
+	if (running->state == WAITING) {
+		running->ticks=0;
+		activator(next);
+	}
+	
+	return 1;
 }
 
 /* Network interrupt  */
 void network_interrupt(int sig)
 {
+	TCB * tmp_tcb;
+	
+	/*printf("Network interr\n");*/
+	
+	/* Not a while because we're only dequeuing the 1st thread */
+	if (!queue_empty(waiting_queue)) {
+		tmp_tcb = dequeue(waiting_queue);
+		tmp_tcb->state = INIT;
+		enqueue(tmp_tcb->priority == HIGH_PRIORITY ? high_priority_queue : ready_queue, tmp_tcb);
+	}
+	
 } 
 
 
@@ -177,9 +209,11 @@ int mythread_gettid(){
 TCB* scheduler(){
 
   if (queue_empty(high_priority_queue) && queue_empty(ready_queue)) {
-    printf("*** THREAD %d FINISHED\n", current);
-    printf("mythread_free: No thread in the system\nExiting...\n");	
-    exit(1); 
+		if (queue_empty(waiting_queue)) {
+			printf("*** THREAD %d FINISHED\n", current);
+			printf("mythread_free: No thread in the system\nExiting...\n");	
+			exit(1); 
+		} else return &idle;
   }
   TCB * next;
   if (queue_empty(high_priority_queue)) {
@@ -192,17 +226,16 @@ TCB* scheduler(){
 
 }
 
+
+/* Not in the case of a read_network */
 void trigger_switch() {
    //   Enqueue this process in the correct queue 
     getcontext(&running->run_env);
     // If it's time
     if (running->priority == LOW_PRIORITY && (running->ticks >= QUANTUM_TICKS || !queue_empty(high_priority_queue))) {
-            
-      if (running->priority == LOW_PRIORITY) {
-        enqueue(ready_queue, running);
-      } else {
-        enqueue(high_priority_queue, running);
-      }
+		
+      enqueue(ready_queue, running);
+
       running->state = IDLE;
       running->ticks = 0;
 
@@ -219,10 +252,15 @@ void trigger_switch() {
 /* Timer interrupt  */
 void timer_interrupt(int sig)
 {
+	TCB * next_pr;
   running->ticks++;
-  if (running->ticks >= QUANTUM_TICKS) {
-    trigger_switch();
-  }
+	if (running->tid==-1) {
+		next_pr = scheduler();
+		if (next_pr->tid!=-1) activator(next_pr);
+	}
+	else if (running->ticks >= QUANTUM_TICKS) {
+			trigger_switch();
+		}
 }
 
 /* Activator */
