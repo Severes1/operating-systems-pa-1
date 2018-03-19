@@ -29,7 +29,6 @@ static int init=0;
 /* Thread control block for the idle thread */
 static TCB idle;
 static void idle_function(){
-	printf("Hello I'm IDLE\n");
   while(1);
 }
 
