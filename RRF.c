@@ -178,7 +178,7 @@ TCB* scheduler(){
 
   if (queue_empty(high_priority_queue) && queue_empty(ready_queue)) {
     printf("*** THREAD %d FINISHED\n", current);
-    printf("mythread_free: No thread in the system\nExiting...\n");	
+    printf("FINISH\n");	
     exit(1); 
   }
   TCB * next;
