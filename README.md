@@ -1,5 +1,7 @@
 # operating-systems-pa-1
 
+## CFR report_doc
+
 ## Code Description
 
 The purpose of protecting regions of code with disable_interrupts is to avoid the situation in which 
