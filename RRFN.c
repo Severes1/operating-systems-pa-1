@@ -119,6 +119,7 @@ int mythread_create (void (*fun_addr)(),int priority)
   t_state[i].run_env.uc_stack.ss_flags = 0;
   makecontext(&t_state[i].run_env, fun_addr, 1); 
 
+  disable_interrupt();
   /* Add process to the correct queue */
   if (priority == LOW_PRIORITY) {
     enqueue(ready_queue, &t_state[i]);
@@ -128,6 +129,7 @@ int mythread_create (void (*fun_addr)(),int priority)
       trigger_switch(); 
     }
   }
+  enable_interrupt();
   return i;
 } /****** End my_thread_create() ******/
 
@@ -139,9 +141,11 @@ int read_network()
 	
 	printf("*** THREAD %i READ FROM NETWORK\n", current);
 	
+	disable_interrupt();
 	enqueue(waiting_queue,running);
 	next = scheduler();
-	
+	enable_interrupt();
+	  
 	running->state = WAITING;
 	getcontext(&(running->run_env));
 	
@@ -158,15 +162,14 @@ void network_interrupt(int sig)
 {
 	TCB * tmp_tcb;
 	
-	/*printf("Network interr\n");*/
-	
+	disable_interrupt();
 	/* Not a while because we're only dequeuing the 1st thread */
 	if (!queue_empty(waiting_queue)) {
 		tmp_tcb = dequeue(waiting_queue);
 		tmp_tcb->state = INIT;
 		enqueue(tmp_tcb->priority == HIGH_PRIORITY ? high_priority_queue : ready_queue, tmp_tcb);
 	}
-	
+	enable_interrupt();
 } 
 
 
@@ -228,6 +231,8 @@ TCB* scheduler(){
 
 
 /* Not in the case of a read_network */
+/* Be careful:
+ * Assuming interrupts are disabled */
 void trigger_switch() {
    //   Enqueue this process in the correct queue 
     getcontext(&running->run_env);
@@ -238,7 +243,7 @@ void trigger_switch() {
 
       running->state = IDLE;
       running->ticks = 0;
-
+	  enable_interrupt();
       //   Call Scheduler
       TCB* next = scheduler();
       if (next->tid != running->tid) {
@@ -253,14 +258,18 @@ void trigger_switch() {
 void timer_interrupt(int sig)
 {
 	TCB * next_pr;
-  running->ticks++;
+	running->ticks++;
+	disable_interrupt();  
 	if (running->tid==-1) {
 		next_pr = scheduler();
-		if (next_pr->tid!=-1) activator(next_pr);
-	}
-	else if (running->ticks >= QUANTUM_TICKS) {
-			trigger_switch();
+		if (next_pr->tid!=-1) {
+			enable_interrupt();
+			activator(next_pr);
 		}
+	}
+	else if (running->ticks >= QUANTUM_TICKS) trigger_switch();
+	
+	enable_interrupt();
 }
 
 /* Activator */

@@ -190,7 +190,7 @@ void timer_interrupt(int sig)
     if (running->ticks >= QUANTUM_TICKS) {
     // Switch
     //   Enqueue this process in the ready_queue
-        enqueue(ready_queue, running); 
+        enqueue(ready_queue, running);
         running->state = IDLE;
         running->ticks = 0;
 
