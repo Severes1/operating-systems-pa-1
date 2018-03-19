@@ -178,7 +178,7 @@ TCB* scheduler(){
 
   if (queue_empty(high_priority_queue) && queue_empty(ready_queue)) {
     printf("*** THREAD %d FINISHED\n", current);
-    printf("mythread_free: No thread in the system\nExiting...\n");	
+    printf("FINISH\n");	
     exit(1); 
   }
   TCB * next;
@@ -209,7 +209,11 @@ void trigger_switch() {
       //   Call Scheduler
       TCB* next = scheduler();
       if (next->tid != running->tid) {
-        printf("*** SWAPCONTEXT FROM %d to %d\n", running->tid, next->tid);
+        if (running->priority == LOW_PRIORITY && next->priority == HIGH_PRIORITY) {
+            printf("*** THREAD %d PREEMPTED: SET CONTEXT OF %d\n", running->tid, next->tid);
+        } else {
+            printf("*** SWAPCONTEXT FROM %d to %d\n", running->tid, next->tid);
+        }
         activator(next);
       }
     }

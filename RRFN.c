@@ -167,6 +167,7 @@ void network_interrupt(int sig)
 		tmp_tcb = dequeue(waiting_queue);
 		tmp_tcb->state = INIT;
 		enqueue(tmp_tcb->priority == HIGH_PRIORITY ? high_priority_queue : ready_queue, tmp_tcb);
+        printf("*** THREAD %d READY\n", tmp_tcb->tid);
 	}
 	enable_interrupt();
 } 
@@ -213,7 +214,7 @@ TCB* scheduler(){
   if (queue_empty(high_priority_queue) && queue_empty(ready_queue)) {
 		if (queue_empty(waiting_queue)) {
 			printf("*** THREAD %d FINISHED\n", current);
-			printf("mythread_free: No thread in the system\nExiting...\n");	
+			printf("FINISH\n");	
 			exit(1); 
 		} else return &idle;
   }
@@ -246,9 +247,14 @@ void trigger_switch() {
       //   Call Scheduler
       TCB* next = scheduler();
       if (next->tid != running->tid) {
-        printf("*** SWAPCONTEXT FROM %d to %d\n", running->tid, next->tid);
+        if (running->priority == LOW_PRIORITY && next->priority == HIGH_PRIORITY) {
+            printf("*** THREAD %d PREEMPTED: SET CONTEXT OF %d\n", running->tid, next->tid);
+        } else {
+            printf("*** SWAPCONTEXT FROM %d to %d\n", running->tid, next->tid);
+        }
         activator(next);
       }
+
     }
 }
 
@@ -262,6 +268,7 @@ void timer_interrupt(int sig)
 	if (running->tid==-1) {
 		next_pr = scheduler();
 		if (next_pr->tid!=-1) {
+            printf("*** THREAD READY: SET CONTEXT TO %d\n", next_pr->tid);
 			enable_interrupt();
 			activator(next_pr);
 		}
