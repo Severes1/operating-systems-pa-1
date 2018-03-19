@@ -246,9 +246,14 @@ void trigger_switch() {
       //   Call Scheduler
       TCB* next = scheduler();
       if (next->tid != running->tid) {
-        printf("*** SWAPCONTEXT FROM %d to %d\n", running->tid, next->tid);
+        if (running->priority == LOW_PRIORITY && next->priority == HIGH_PRIORITY) {
+            printf("*** THREAD %d PREEMPTED: SET CONTEXT OF %d\n", running->tid, next->tid);
+        } else {
+            printf("*** SWAPCONTEXT FROM %d to %d\n", running->tid, next->tid);
+        }
         activator(next);
       }
+
     }
 }
 
