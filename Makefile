@@ -9,7 +9,8 @@ LDFLAGS	= libinterrupt.a
 HEADERS = mythread.h queue.h
 
 
-OBJS	= RRFN.o queue.o 
+
+OBJS	= queue.o RR.o #RRF.o #RRFN.o #mythreadlib.o
 
 LIBS	= -lm -lrt
 
