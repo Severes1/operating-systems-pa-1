@@ -136,7 +136,7 @@ void mythread_exit() {
   /* Do not add the thread back into the queue */    
 
   TCB* next = scheduler();
-  printf("*** THREAD %d FINISHED AFTER %d TICKS: SET CONTEXT OF %d\n", tid, running->ticks, next->tid);
+  printf("*** THREAD %d FINISHED: SET CONTEXT OF %d\n", tid, next->tid);
 
   t_state[tid].state = FREE;
   free(t_state[tid].run_env.uc_stack.ss_sp); 
@@ -168,13 +168,13 @@ int mythread_gettid(){
 TCB* scheduler(){
 
   if (queue_empty(ready_queue)) {
+    printf("*** THREAD %d EXITED\n", current);
     printf("mythread_free: No thread in the system\nExiting...\n");	
     exit(1); 
   }
 
   TCB* next = dequeue(ready_queue);
   /* TODO state */
-  current = next->tid;
   return next;
 
  }
@@ -196,11 +196,10 @@ void timer_interrupt(int sig)
 
     //   Call Scheduler
         TCB* next = scheduler();
-        
-        printf("*** SWAPCONTEXT FROM %d to %d\n", running->tid, next->tid);
-        running = next; 
-        current = next->tid;
-        activator(next);
+        if (next->tid != current){
+            printf("*** SWAPCONTEXT FROM %d to %d\n", running->tid, next->tid);
+            activator(next);
+        }
     }
     // Else do nothing
 
@@ -208,6 +207,9 @@ void timer_interrupt(int sig)
 
 /* Activator */
 void activator(TCB* next){
+  running = next; 
+  current = next->tid;
+        
   setcontext (&(next->run_env));
   printf("mythread_free: After setcontext, should never get here!!...\n");	
 }
