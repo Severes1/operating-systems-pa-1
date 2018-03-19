@@ -7,6 +7,7 @@
 
 #include "mythread.h"
 
+int delays[3] = {100000000, 100000000, 100000000};
 
 void fun1 (int global_index)
 {
@@ -14,12 +15,12 @@ void fun1 (int global_index)
 read_network();
   for (a=0; a<10; ++a) { 
 //    printf ("Thread %d with priority %d\t from fun2 a = %d\tb = %d\n", mythread_gettid(), mythread_getpriority(), a, b);
-    for (b=0; b<25000000; ++b);
+    for (b=0; b<delays[0]; ++b);
   }
 
   for (a=0; a<10; ++a) { 
 //    printf ("Thread %d with priority %d\t from fun2 a = %d\tb = %d\n", mythread_gettid(), mythread_getpriority(), a, b);
-    for (b=0; b<25000000; ++b);
+    for (b=0; b<delays[0]; ++b);
   }
   mythread_exit(); 
   return;
@@ -32,11 +33,11 @@ void fun2 (int global_index)
   read_network();
   for (a=0; a<10; ++a) {
   //  printf ("Thread %d with priority %d\t from fun2 a = %d\tb = %d\n", mythread_gettid(), mythread_getpriority(), a, b);
-    for (b=0; b<18000000; ++b);
+    for (b=0; b<delays[1]; ++b);
   }
   for (a=0; a<10; ++a) {
   //  printf ("Thread %d with priority %d\t from fun2 a = %d\tb = %d\n", mythread_gettid(), mythread_getpriority(), a, b);
-    for (b=0; b<18000000; ++b);
+    for (b=0; b<delays[1]; ++b);
   }
   mythread_exit();
   return;
@@ -47,11 +48,11 @@ void fun3 (int global_index)
   int a=0, b=0;
   for (a=0; a<10; ++a) {
     //printf ("Thread %d with priority %d\t from fun2 a = %d\tb = %d\n", mythread_gettid(), mythread_getpriority(), a, b);
-    for (b=0; b<40000000; ++b);
+    for (b=0; b<delays[2]; ++b);
   }
   for (a=0; a<10; ++a) {
     //printf ("Thread %d with priority %d\t from fun2 a = %d\tb = %d\n", mythread_gettid(), mythread_getpriority(), a, b);
-    for (b=0; b<40000000; ++b);
+    for (b=0; b<delays[2]; ++b);
   }
   mythread_exit();
   return;

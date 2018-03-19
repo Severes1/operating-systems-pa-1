@@ -10,13 +10,13 @@ HEADERS = mythread.h queue.h
 
 
 
-OBJS	= queue.o RR.o #RRF.o #RRFN.o #mythreadlib.o
+OBJS	= queue.o RRFN.o #RRF.o #RRFN.o #mythreadlib.o
 
 LIBS	= -lm -lrt
 
 SRCS	= $(patsubst %.o,%.c,$(OBJS))
 
-PRGS	= main
+PRGS	= main test_stress
 
 all: libinterrupt.a $(PRGS)
 
